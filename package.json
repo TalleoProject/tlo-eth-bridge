@@ -1,0 +1,33 @@
+{
+  "name": "@talleoproject/tlo-eth-bridge",
+  "description": "Cryptocurrency bridge between Talleo (TLO) and Ethereum (ETH)",
+  "version": "1.0.0",
+  "license": "LGPL-2.0",
+  "authors": "Mika Lindqvist",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/TalleoProject/tlo-eth-bridge"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^3.4.1",
+    "async": "^3.2.4",
+    "base58-native": "*",
+    "bignum": "*",
+    "cli-color": "^2.0.3",
+    "dateformat": "*",
+    "redis": "^4.3.0",
+    "solc": ">=0.7.0 <0.8.0",
+    "web3": "^1.7.5"
+  },
+  "engines": {
+    "node": ">=15"
+  },
+  "scripts": {
+    "start": "node init.js",
+    "install": "make"
+  },
+  "devDependencies": {}
+}

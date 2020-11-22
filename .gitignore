@@ -1,0 +1,11 @@
+config.json
+contract/*.abi
+contract/SafeMath.sol
+/logs
+/node_modules
+/package-lock.json
+/website/web3.min.js
+/website/WrappedTalleoToken.js
+/dump.rdb
+*.bak
+*.save

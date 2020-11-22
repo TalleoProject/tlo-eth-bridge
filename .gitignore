@@ -1,0 +1,7 @@
+config.json
+contract/*.abi
+/logs
+/node_modules
+/website/WrappedTalleoToken.js
+/dump.rdb
+*.save

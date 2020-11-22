@@ -1,0 +1,138 @@
+<html>
+<head>
+<title>TLO-ETH Bridge</title>
+<script src="web3.min.js"></script>
+<script src="Base58.min.js"></script>
+</head>
+<body>
+<h1>Convert ETH address to payment ID</h1>
+<form action="javascript:convert();">
+ETH address: <input type="text" name="ETHAddress" id="ETHAddress" value="0x" maxlength="42" required pattern="0x[0123456789abcdefABCDEF]{40}" />
+<input type="submit" value="Convert" />
+</form>
+Send the TLO to <span id="BridgeAddress"></span> with the generated payment ID.<br />
+Payment ID: <span id="paymentID1"></span>
+<h1>Convert payment ID to ETH address</h1>
+<form action="javascript:verifyETH();">
+Payment ID: <input type="text" name="paymentID2" id="paymentID2" value="" maxlength="64" required pattern="[0-9a-fA-F]{64}" />
+<input type="submit" value="Convert" />
+</form>
+ETH address: <span id="ETHAddress2"></span>
+<h1>Convert Talleo address to payment ID</h1>
+<form action="javascript:withdraw();">
+Talleo address: <input type="text" name="TLOAddress" id="TLOAddress" value="TA" maxlength="97" required pattern="TA[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{95}" /><br />
+Amount: <input type="number" name="amount" id="amount" value="0.00" min="0.00" max="300000000.00" step="0.01" /><br />
+<input type="submit" value="Convert" />
+</form>
+Set amount to 0.00 TLO if you only want to check the payment ID.<br />
+Payment ID: <span id="paymentID3"></span>
+<h1>Convert payment ID to Talleo address</h1>
+<form action="javascript:verifyTalleo();">
+Payment ID: <input type="text" name="TLOAddress2" id="TLOAddress2" value="0x" required pattern="0x[0-9a-f]{142}" /><br />
+<input type="submit" value="Convert" />
+</form>
+TLO address: <span id="TLOAddress3"></span>
+<script src="WrappedTalleoToken.js"></script>
+<script>
+document.getElementById("BridgeAddress").innerHTML = bridgeAddress;
+var indexes = "0123456789abcdefABCDEF";
+
+function eth_to_payment_id(address) {
+    "use strict";
+    var pid = "", i, t1, t2, t3, t4, a;
+
+    for (i = 2; i < 42; i += 4) {
+        t1 = indexes.indexOf(address.charAt(i));
+        t2 = indexes.indexOf(address.charAt(i + 1));
+        t3 = indexes.indexOf(address.charAt(i + 2));
+        t4 = indexes.indexOf(address.charAt(i + 3));
+        a = t1 >> 1;
+        pid += a.toString(16);
+        a = ((t1 & 1) << 3) + (t2 >> 2);
+        pid += a.toString(16);
+        a = ((t2 & 3) << 2) + (t3 >> 3);
+        pid += a.toString(16);
+        a = ((t3 & 7) << 1) + (t4 >> 4);
+        pid += a.toString(16);
+        a = (t4 & 15);
+        pid += a.toString(16);
+    }
+    return pid.padEnd(64, 0);
+}
+
+function payment_id_to_eth(pid) {
+    "use strict";
+    var address = "0x", i, a;
+    for (i = 0; i < 54; i += 5) {
+        a = (parseInt(pid.charAt(i), 16) << 1) + (parseInt(pid.charAt(i + 1), 16) >> 3);
+        address += indexes.charAt(a);
+        a = ((parseInt(pid.charAt(i + 1), 16) & 7) << 2) + (parseInt(pid.charAt(i + 2), 16) >> 2);
+        address += indexes.charAt(a);
+        a = ((parseInt(pid.charAt(i + 2), 16) & 3) << 3) + (parseInt(pid.charAt(i + 3), 16) >> 1);
+        address += indexes.charAt(a);
+        a = ((parseInt(pid.charAt(i + 3), 16) & 1) << 4) + parseInt(pid.charAt(i + 4), 16);
+        address += indexes.charAt(a);
+    }
+    return address.substring(0, 42);
+}
+
+function convert() {
+   var ethAddress = document.getElementById("ETHAddress").value;
+   document.getElementById("paymentID1").innerHTML = eth_to_payment_id(ethAddress);
+}
+
+function toHexString(byteArray) {
+  return byteArray.reduce((output, elem) => 
+    (output + elem.toString(16).padStart(2, '0')), '');
+}
+
+function fromHexString(hex){
+    hex = hex.toString();
+    var bytes = new Uint8Array(hex.length / 2);
+    for(var i=0; i< hex.length-1; i+=2) {
+        var c = parseInt(hex.substr(i, 2), 16);
+        if (c > 127) {
+          c = c - 256;
+        }
+        bytes[i/2] = c;
+    }
+    return bytes;
+}
+
+async function withdraw() {
+  var tloAddress = document.getElementById("TLOAddress").value;
+  var amount = (document.getElementById("amount").value || 0) * 100;
+  var decoded = window.Base58.decode(tloAddress);
+  var decodedHex = "0x" + toHexString(decoded);
+  document.getElementById("paymentID3").innerHTML = decodedHex;
+  if (amount > 0) {
+    if (window.ethereum) {
+      await ethereum.enable();
+    }
+
+    var web3 = window.Web3;
+    web3 = new Web3(web3.givenProvider);
+    var abi = JSON.parse(WrappedTalleoToken);
+    var contract = new web3.eth.Contract(abi, contractAddress);
+    var accounts = await web3.eth.getAccounts();
+    var account = accounts[0];
+     
+    contract.methods.convertTo(decodedHex, amount).send({"from": account});
+  }
+}
+
+function verifyETH() {
+  var encodedHex = document.getElementById("paymentID2").value;
+  var ETHAddress = payment_id_to_eth(encodedHex);
+  document.getElementById("ETHAddress2").innerHTML = ETHAddress;
+}
+
+function verifyTalleo() {
+  var encodedHex = document.getElementById("TLOAddress2").value.substr(2);
+  var encoded = fromHexString(encodedHex);
+  var TLOAddress = window.Base58.encode(encoded);
+  document.getElementById("TLOAddress3").innerHTML = TLOAddress;
+}
+</script>
+</body>
+</html>

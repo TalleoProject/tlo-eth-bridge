@@ -1,0 +1,48 @@
+{
+    "ethereum" : {
+        "enabled": true,
+        "contractABI": "<replace with full path to contract ABI definition file>",
+        "contractAddress": "<replace with contract's ETH address>",
+        "ownerKey": "<replace with ETH private key of contract owner>",
+        "ownerAddress": "<replace with wallet address of contract owner>",
+        "httpsNode": "https://opt-goerli.g.alchemy.com/v2",
+        "wssNode": "wss://opt-goerli.g.alchemy.com/v2",
+        "confirmations": 14,
+        "gas": 120000,
+        "startHeight": 0,
+        "blacklist": []
+    },
+    "logging" : {
+        "files": {
+            "level": "info",
+            "directory": "logs",
+            "flushInterval": 5
+        },
+        "console": {
+            "level": "info",
+            "colors": true
+        }
+    },
+    "redis" : {
+        "host": "127.0.0.1",
+        "port": 6379
+    },
+    "talleo" : {
+        "enabled": true,
+        "bridgeAddress": "<replace with TLO address of bridge wallet>",
+        "daemon": {
+            "host": "127.0.0.1",
+            "port": 33888,
+            "ssl": false
+        },
+        "wallet": {
+            "host": "127.0.0.1",
+            "port": 33777,
+            "ssl": false,
+            "password": "<replace with RPC password>"
+        },
+        "confirmations": 10,
+        "fee": 1,
+        "startHeight": 0
+    }
+}

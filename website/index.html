@@ -1,0 +1,418 @@
+<html>
+<head>
+<title>TLO-ETH Bridge</title>
+<link rel="shortcut icon" href="images/logo.png">
+<script src="web3.min.js"></script>
+<script src="Base58.min.js"></script>
+</head>
+<body>
+<style>
+.header {
+  margin-top: 20px;
+  height: 120px;
+}
+
+.logo {
+  float: left;
+  height: 110px;
+  margin-left: 20px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  width: 110px;
+}
+.logo2 {
+  float: right;
+  height: 110px;
+  margin-right: 20px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  width: 110px;
+}
+
+#menu {
+  margin: 5px 0px 0px 0px;
+  padding: 0px 0px 0px 5px;
+}
+
+#menu > a {
+  border-left: 2px solid black;
+  border-right: 2px solid black;
+  border-top: 2px solid black;
+  border-radius: 5px 5px 0px 0px;
+  padding: 5px 5px 0px 5px;
+  text-decoration: none;
+}
+
+#menu > a.currenttab {
+  pointer-events: none;
+  cursor: default;
+  color: black;
+  border-bottom: 2px solid white;
+}
+
+#tab1, #tab2 {
+  border: 2px solid black;
+  border-radius: 5px 5px 5px 5px;
+  padding: 10px;
+  height: calc(100% - 190px);
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+hr {
+  background-color: #000000;
+  border-color: #7f7f7f;
+  height: 1px;
+  margin-top: 21.44px;
+}
+
+img {
+  max-width: 100%;
+}
+
+.pagetitle {
+  display: inline-block;
+  font-size: 40px;
+  padding-top: 37px;
+  padding-bottom: 37px;
+  text-align: center;
+  width: calc(100% - 260px);
+}
+
+.footer {
+  position: absolute;
+  left: 0px;
+  bottom: 0px;
+  text-align: center;
+  width: 100%;
+}
+</style>
+<div class="header">
+<div class="logo">
+<img src="/images/logo.png">
+</div>
+<div class="pagetitle">
+  Talleo &#8596; Ethereum bridge
+</div>
+<div class="logo2">
+<img src="images/coin-large.png">
+</div>
+</div>
+<div id="menu"><a id="menu1" class="currenttab" href="javascript:tab1();">TLO &#8594; ETH</a><a id="menu2" href="javascript:tab2();">ETH &#8594; TLO</a></div>
+<div id="tab1">
+<h1>Convert ETH address to payment ID</h1>
+<form action="javascript:convert();">
+<b>ETH address:</b> <input type="text" name="ETHAddress" id="ETHAddress" value="0x" maxlength="42" size="42" required pattern="0x[0123456789abcdefABCDEF]{40}" />
+<input type="submit" value="Convert" />
+</form>
+Send the TLO to <span id="BridgeAddress"></span> with the generated payment ID.<br />
+<br />
+<b>Payment ID:</b> <span id="paymentID1"></span>
+<hr />
+<h1>Convert payment ID to ETH address</h1>
+<form action="javascript:verifyETH();">
+<b>Payment ID:</b> <input type="text" name="paymentID2" id="paymentID2" value="" maxlength="64" size="64" required pattern="[0-9a-fA-F]{64}" />
+<input type="submit" value="Convert" />
+</form>
+<b>ETH address:</b> <span id="ETHAddress2"></span>
+</div>
+<div id="tab2" style="display: none;">
+<h1>Convert Talleo address to payment ID</h1>
+<form action="javascript:withdraw();">
+<table>
+<tr>
+<th>Talleo address:</th><td><input type="text" name="TLOAddress" id="TLOAddress" value="TA" maxlength="97" size="97" required pattern="TA[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{95}" /></td>
+</tr>
+<tr>
+<th style="text-align: left;">Amount:</th><td align="right"><input type="number" name="amount" id="amount" value="0.00" min="0.00" max="300000000.00" step="0.01" style="text-align: right;" /></td>
+</tr>
+<tr>
+<td colspan="2" style="text-align: center;"><input type="submit" value="Convert" /></td>
+</tr>
+</table>
+</form>
+Set amount to 0.00 TLO if you only want to check the payment ID.<br />
+<br />
+<table>
+<tr><th style="text-align: left;">Current wallet:</th><td style="text-align: right;"><span id="TokenWallet">None</span></td>
+<td rowspan="3" valign="top">
+<form action="javascript:connectWallet();">
+<input type="submit" id="connect" value="Connect">
+</form>
+</td>
+<td rowspan="3" valign="top">
+<form action="javascript:addToken();">
+<input type="submit" id="add" value="Add token">
+</form>
+</td>
+</tr>
+<tr><th style="text-align: left;">Current balance:</th><td style="text-align: right;"><span id="TokenBalance">0.00</span> <span id="TokenSymbol"></span></td></tr>
+<tr><th style="text-align: left;">Payment ID:</th><td style="text-align: right;"><span id="paymentID3"></span></td></tr>
+</table>
+<hr />
+<h1>Convert payment ID to Talleo address</h1>
+<form action="javascript:verifyTalleo();">
+<b>Payment ID:</b> <input type="text" name="TLOAddress2" id="TLOAddress2" value="0x" maxlength="144" size="144" required pattern="0x[0-9a-f]{142}" />
+<input type="submit" value="Convert" />
+</form>
+<b>TLO address:</b> <span id="TLOAddress3"></span>
+<script src="WrappedTalleoToken.js"></script>
+<script>
+function tab1() {
+    document.getElementById("menu1").className = 'currenttab';
+    document.getElementById("menu2").className = '';
+    document.getElementById("tab1").style.display = 'block';
+    document.getElementById("tab2").style.display = 'none';
+}
+
+function tab2() {
+    document.getElementById("menu1").className = '';
+    document.getElementById("menu2").className = 'currenttab';
+    document.getElementById("tab1").style.display = 'none';
+    document.getElementById("tab2").style.display = 'block';
+}
+
+document.getElementById("BridgeAddress").innerHTML = bridgeAddress;
+var indexes = "0123456789abcdefABCDEF";
+
+function eth_to_payment_id(address) {
+    "use strict";
+    var pid = "", i, t1, t2, t3, t4, a;
+
+    for (i = 2; i < 42; i += 4) {
+        t1 = indexes.indexOf(address.charAt(i));
+        t2 = indexes.indexOf(address.charAt(i + 1));
+        t3 = indexes.indexOf(address.charAt(i + 2));
+        t4 = indexes.indexOf(address.charAt(i + 3));
+        a = t1 >> 1;
+        pid += a.toString(16);
+        a = ((t1 & 1) << 3) + (t2 >> 2);
+        pid += a.toString(16);
+        a = ((t2 & 3) << 2) + (t3 >> 3);
+        pid += a.toString(16);
+        a = ((t3 & 7) << 1) + (t4 >> 4);
+        pid += a.toString(16);
+        a = (t4 & 15);
+        pid += a.toString(16);
+    }
+    return pid.padEnd(64, 0);
+}
+
+function payment_id_to_eth(pid) {
+    "use strict";
+    var address = "0x", i, a;
+    for (i = 0; i < 54; i += 5) {
+        a = (parseInt(pid.charAt(i), 16) << 1) + (parseInt(pid.charAt(i + 1), 16) >> 3);
+        address += indexes.charAt(a);
+        a = ((parseInt(pid.charAt(i + 1), 16) & 7) << 2) + (parseInt(pid.charAt(i + 2), 16) >> 2);
+        address += indexes.charAt(a);
+        a = ((parseInt(pid.charAt(i + 2), 16) & 3) << 3) + (parseInt(pid.charAt(i + 3), 16) >> 1);
+        address += indexes.charAt(a);
+        a = ((parseInt(pid.charAt(i + 3), 16) & 1) << 4) + parseInt(pid.charAt(i + 4), 16);
+        address += indexes.charAt(a);
+    }
+    return address.substring(0, 42);
+}
+
+function convert() {
+   var ethAddress = document.getElementById("ETHAddress").value;
+   document.getElementById("paymentID1").innerHTML = eth_to_payment_id(ethAddress);
+}
+
+function toHexString(byteArray) {
+  return byteArray.reduce((output, elem) =>
+    (output + elem.toString(16).padStart(2, '0')), '');
+}
+
+function fromHexString(hex){
+    hex = hex.toString();
+    var bytes = new Uint8Array(hex.length / 2);
+    for(var i=0; i< hex.length-1; i+=2) {
+        var c = parseInt(hex.substr(i, 2), 16);
+        if (c > 127) {
+          c = c - 256;
+        }
+        bytes[i/2] = c;
+    }
+    return bytes;
+}
+
+var _web3;
+
+async function switchChainToETH() {
+    try {
+      await ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: '0x1' }],
+      });
+    } catch (switchError) {
+      if (switchError.code === 4902) {
+        try {
+          await ethereum.request({
+            method: "wallet_addEthereumChain",
+            params: [{
+              chainId: '0x1',
+              rpcUrls: ["https://mainnet.infura.io/v3/"],
+              chainName: "Ethereum Mainnet",
+              nativeCurrency: {
+                name: "ETH",
+                symbol: "ETH",
+                decimals: 18
+              },
+              blockExplorerUrls: ["https://etherscan.io/"]
+            }]
+          });
+          await ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x1' }],
+          });
+        } catch (error){
+          console.log(error);
+        }
+      }
+    }
+}
+
+async function checkChainId() {
+  var chain = await _web3.eth.getChainId();
+  if (chain != 1 && ethereum.isMetaMask) {
+    await switchChainToETH();
+    chain = await _web3.eth.getChainId();
+  }
+  if (chain != 1) {
+    throw new Error("Wrong Chain ID!");
+  }
+}
+
+async function withdraw() {
+  var tloAddress = document.getElementById("TLOAddress").value;
+  var amount = (document.getElementById("amount").value || 0) * 100;
+  var decoded = window.Base58.decode(tloAddress);
+  var decodedHex = "0x" + toHexString(decoded);
+  document.getElementById("paymentID3").innerHTML = decodedHex;
+  if (amount > 0) {
+    if (window.ethereum) {
+      try {
+        await ethereum.enable();
+
+        if (_web3 === undefined) {
+          _web3 = new Web3(window.Web3.givenProvider);
+        }
+
+        await checkChainId();
+
+        var abi = JSON.parse(WrappedTalleoToken);
+        var contract = new _web3.eth.Contract(abi, contractAddress);
+        var accounts = await _web3.eth.getAccounts();
+        var account = accounts[0];
+
+        contract.methods.convertTo(decodedHex, amount).send({"from": account});
+      } catch (e) {
+        document.getElementById("TokenWallet").innerHTML = "None";
+        document.getElementById("TokenBalance").innerHTML = "0.00";
+      }
+    }
+  }
+}
+
+async function balance() {
+  if (_web3 === undefined) {
+    _web3 = new Web3(window.Web3.givenProvider);
+  }
+  var abi = JSON.parse(WrappedTalleoToken);
+  if (window.ethereum) {
+    try {
+      await ethereum.enable();
+
+      await checkChainId();
+
+      var contract = new _web3.eth.Contract(abi, contractAddress);
+      var accounts = await _web3.eth.getAccounts();
+      var account = accounts[0];
+
+      var _balance = await contract.methods.balanceOf(account).call();
+      var _decimals = await contract.methods.decimals().call();
+      var _symbol = await contract.methods.symbol().call();
+      var balanceStr = (_balance / Math.pow(10, _decimals)).toFixed(_decimals);
+
+      document.getElementById("TokenWallet").innerHTML = account;
+      document.getElementById("TokenBalance").innerHTML = balanceStr;
+      document.getElementById("TokenSymbol").innerHTML = _symbol;
+
+      document.getElementById("amount").max = balanceStr;
+
+      document.getElementById("connect").style.display = "none";
+    } catch (e) {
+      document.getElementById("TokenWallet").innerHTML = "None";
+      document.getElementById("TokenBalance").innerHTML = "0.00";
+    }
+    setTimeout(balance, 1000);
+  }
+}
+
+async function addToken() {
+  if (_web3 === undefined) {
+    _web3 = new Web3(window.Web3.givenProvider);
+  }
+  var abi = JSON.parse(WrappedTalleoToken);
+  if (window.ethereum) {
+    try {
+      await ethereum.enable();
+
+      await checkChainId();
+
+      var contract = new _web3.eth.Contract(abi, contractAddress);
+      var _decimals = await contract.methods.decimals().call();
+      var _symbol = await contract.methods.symbol().call();
+
+      ethereum.sendAsync({
+          method: 'wallet_watchAsset',
+          params: {
+              'type': 'ERC20',
+              'options': {
+                  'address': contractAddress,
+                  'symbol': _symbol,
+                  'decimals': _decimals,
+                  'image': 'https://eth-bridge.talleo.org/images/coin-large.png',
+              },
+          },
+          id: Math.round(Math.random() * 100000)
+      }, function (err, data) {
+          if (!err) {
+            if (data.result) {
+              document.getElementById('add').style.display = 'none';
+            } else {
+              console.log(data);
+            }
+          } else {
+            console.log(err.message);
+          }
+      });
+    } catch (e) {
+      console.log(e);
+    }
+  }
+}
+
+function connectWallet() {
+  balance();
+}
+
+function verifyETH() {
+  var encodedHex = document.getElementById("paymentID2").value;
+  var ETHAddress = payment_id_to_eth(encodedHex);
+  document.getElementById("ETHAddress2").innerHTML = ETHAddress;
+}
+
+function verifyTalleo() {
+  var encodedHex = document.getElementById("TLOAddress2").value.substr(2);
+  var encoded = fromHexString(encodedHex);
+  var TLOAddress = window.Base58.encode(encoded);
+  document.getElementById("TLOAddress3").innerHTML = TLOAddress;
+}
+</script>
+<div class="footer">
+&copy; 2020&ndash;2023 Talleo Project
+</div>
+</body>
+</html>

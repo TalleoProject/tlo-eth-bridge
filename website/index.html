@@ -1,37 +1,91 @@
 <html>
 <head>
 <title>TLO-ETH Bridge</title>
+<link rel="shortcut icon" href="images/logo.png">
 <script src="web3.min.js"></script>
 <script src="Base58.min.js"></script>
 </head>
 <body>
+<style>
+.header {
+  margin-top: 20px;
+  height: 120px;
+}
+
+.logo {
+  float: left;
+  height: 110px;
+  margin-left: 20px;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  width: 110px;
+}
+
+img {
+  max-width: 100%;
+}
+
+.pagetitle {
+  font-size: 40px;
+  padding-top: 37px;
+  padding-bottom: 37px;
+  text-align: center;
+}
+
+.footer {
+  position: absolute;
+  bottom: 0px;
+}
+</style>
+<div class="header">
+<div class="logo">
+<img src="/images/logo.png">
+</div>
+<div class="pagetitle">
+  Talleo &#8596; Ethereum bridge
+</div>
+</div>
+<div style="clear: all"></div>
 <h1>Convert ETH address to payment ID</h1>
 <form action="javascript:convert();">
-ETH address: <input type="text" name="ETHAddress" id="ETHAddress" value="0x" maxlength="42" required pattern="0x[0123456789abcdefABCDEF]{40}" />
+<b>ETH address:</b> <input type="text" name="ETHAddress" id="ETHAddress" value="0x" maxlength="42" size="42" required pattern="0x[0123456789abcdefABCDEF]{40}" />
 <input type="submit" value="Convert" />
 </form>
 Send the TLO to <span id="BridgeAddress"></span> with the generated payment ID.<br />
-Payment ID: <span id="paymentID1"></span>
+<b>Payment ID:</b> <span id="paymentID1"></span>
 <h1>Convert payment ID to ETH address</h1>
 <form action="javascript:verifyETH();">
-Payment ID: <input type="text" name="paymentID2" id="paymentID2" value="" maxlength="64" required pattern="[0-9a-fA-F]{64}" />
+<b>Payment ID:</b> <input type="text" name="paymentID2" id="paymentID2" value="" maxlength="64" size="64" required pattern="[0-9a-fA-F]{64}" />
 <input type="submit" value="Convert" />
 </form>
-ETH address: <span id="ETHAddress2"></span>
+<b>ETH address:</b> <span id="ETHAddress2"></span>
 <h1>Convert Talleo address to payment ID</h1>
 <form action="javascript:withdraw();">
-Talleo address: <input type="text" name="TLOAddress" id="TLOAddress" value="TA" maxlength="97" required pattern="TA[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{95}" /><br />
-Amount: <input type="number" name="amount" id="amount" value="0.00" min="0.00" max="300000000.00" step="0.01" /><br />
-<input type="submit" value="Convert" />
+<table>
+<tr>
+<th>Talleo address:</th><td><input type="text" name="TLOAddress" id="TLOAddress" value="TA" maxlength="97" size="97" required pattern="TA[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{95}" /></td>
+</tr>
+<tr>
+<th style="text-align: left;">Amount:</th><td align="right"><input type="number" name="amount" id="amount" value="0.00" min="0.00" max="300000000.00" step="0.01" style="text-align: right;" /></td>
+</tr>
+<tr>
+<td colspan="2" style="text-align: center;"><input type="submit" value="Convert" /></td>
+</tr>
+</table>
 </form>
 Set amount to 0.00 TLO if you only want to check the payment ID.<br />
-Payment ID: <span id="paymentID3"></span>
+<br />
+<table>
+<tr><th style="text-align: left;">Current wallet:</th><td style="text-align: right;"><span id="TokenWallet">None</span></td></tr>
+<tr><th style="text-align: left;">Current balance:</th><td style="text-align: right;"><span id="TokenBalance">0.00</span> <span id="TokenSymbol"></span></td></tr>
+<tr><th style="text-align: left;">Payment ID:</th><td style="text-align: right;"><span id="paymentID3"></span></td></tr>
+</table>
 <h1>Convert payment ID to Talleo address</h1>
 <form action="javascript:verifyTalleo();">
-Payment ID: <input type="text" name="TLOAddress2" id="TLOAddress2" value="0x" required pattern="0x[0-9a-f]{142}" /><br />
+<b>Payment ID:</b> <input type="text" name="TLOAddress2" id="TLOAddress2" value="0x" maxlength="144" size="144" required pattern="0x[0-9a-f]{142}" />
 <input type="submit" value="Convert" />
 </form>
-TLO address: <span id="TLOAddress3"></span>
+<b>TLO address:</b> <span id="TLOAddress3"></span>
 <script src="WrappedTalleoToken.js"></script>
 <script>
 document.getElementById("BridgeAddress").innerHTML = bridgeAddress;
@@ -108,18 +162,45 @@ async function withdraw() {
   if (amount > 0) {
     if (window.ethereum) {
       await ethereum.enable();
-    }
 
-    var web3 = window.Web3;
-    web3 = new Web3(web3.givenProvider);
-    var abi = JSON.parse(WrappedTalleoToken);
+      var web3 = window.Web3;
+      web3 = new Web3(web3.givenProvider);
+      var abi = JSON.parse(WrappedTalleoToken);
+      var contract = new web3.eth.Contract(abi, contractAddress);
+      var accounts = await web3.eth.getAccounts();
+      var account = accounts[0];
+     
+      contract.methods.convertTo(decodedHex, amount).send({"from": account});
+    }
+  }
+}
+
+async function balance() {
+  var web3 = window.Web3;
+  web3 = new Web3(web3.givenProvider);
+  var abi = JSON.parse(WrappedTalleoToken);
+  if (window.ethereum) {
+    await ethereum.enable();
+
     var contract = new web3.eth.Contract(abi, contractAddress);
     var accounts = await web3.eth.getAccounts();
     var account = accounts[0];
      
-    contract.methods.convertTo(decodedHex, amount).send({"from": account});
+    var _balance = await contract.methods.balanceOf(account).call();
+    var _decimals = await contract.methods.decimals().call();
+    var _symbol = await contract.methods.symbol().call();
+    var balanceStr = (_balance / Math.pow(10, _decimals)).toFixed(_decimals);
+
+    document.getElementById("TokenWallet").innerHTML = account;
+    document.getElementById("TokenBalance").innerHTML = balanceStr;
+    document.getElementById("TokenSymbol").innerHTML = _symbol;
+
+    document.getElementById("amount").max = balanceStr;
+    setTimeout(balance, 1000);
   }
 }
+
+balance();
 
 function verifyETH() {
   var encodedHex = document.getElementById("paymentID2").value;
@@ -134,5 +215,8 @@ function verifyTalleo() {
   document.getElementById("TLOAddress3").innerHTML = TLOAddress;
 }
 </script>
+<div class="footer">
+&copy; 2020 Talleo Project
+</div>
 </body>
 </html>

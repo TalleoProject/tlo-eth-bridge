@@ -1,5 +1,6 @@
 config.json
 contract/*.abi
+contract/SafeMath.sol
 /logs
 /node_modules
 /website/WrappedTalleoToken.js

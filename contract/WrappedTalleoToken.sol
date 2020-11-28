@@ -1,42 +1,10 @@
 // SPDX-License-Identifier: LGPL-2.0-or-later
 pragma solidity >= 0.5.0 <0.7.6;
 
-library SafeMath {
-    /**
-     * @dev Returns the addition of two unsigned integers, reverting on
-     * overflow.
-     *
-     * Counterpart to Solidity's `+` operator.
-     *
-     * Requirements:
-     *
-     * - Addition cannot overflow.
-     */
-    function add(uint256 a, uint256 b) internal pure returns (uint256) {
-        uint256 c = a + b;
-        require(c >= a, "SafeMath: addition overflow");
+import "SafeMath.sol";
+import "IERC20.sol";
 
-        return c;
-    }
-
-    /**
-     * @dev Returns the subtraction of two unsigned integers, reverting on
-     * overflow (when the result is negative).
-     *
-     * Counterpart to Solidity's `-` operator.
-     *
-     * Requirements:
-     *
-     * - Subtraction cannot overflow.
-     */
-    function sub(uint256 a, uint256 b) internal pure returns (uint256) {
-        require(b <= a, "SafeMath: subtraction overflow");
-        uint256 c = a - b;
-        return c;
-    }
-}
-
-contract WrappedTalleoToken {
+contract WrappedTalleoToken is IERC20 {
 
 using SafeMath for uint256;
 
@@ -47,6 +15,11 @@ address payable owner;
 uint256 tokenTotalSupply;
 mapping(address => uint256) balances;
 mapping(address => mapping(address => uint256)) allowed;
+
+modifier onlyOwner() {
+    require(msg.sender == owner, "Only owner can call this function.");
+    _;
+}
 
 constructor(string memory _name, string memory _symbol, uint8 _decimals, uint256 _totalSupply) {
     owner = msg.sender;
@@ -66,15 +39,15 @@ function symbol() public view returns (string memory) {
     return tokenSymbol;
 }
 
-function totalSupply() public view returns (uint256) {
+function totalSupply() public override view returns (uint256) {
     return tokenTotalSupply;
 }
 
-function balanceOf(address _owner) public view returns (uint256) {
+function balanceOf(address _owner) public override view returns (uint256) {
     return balances[_owner];
 }
 
-function transfer(address recipient, uint256 amount) public returns (bool) {
+function transfer(address recipient, uint256 amount) public override returns (bool) {
     require(balances[msg.sender] >= amount);
 
     balances[msg.sender] = balances[msg.sender].sub(amount);
@@ -84,11 +57,11 @@ function transfer(address recipient, uint256 amount) public returns (bool) {
     return true;
 }
 
-function allowance(address sender, address spender) public view returns (uint256) {
+function allowance(address sender, address spender) public override view returns (uint256) {
     return allowed[sender][spender];
 }
 
-function approve(address spender, uint256 amount) external returns (bool) {
+function approve(address spender, uint256 amount) external override returns (bool) {
     require(balances[msg.sender] >= amount);
 
     allowed[msg.sender][spender] = amount;
@@ -96,7 +69,7 @@ function approve(address spender, uint256 amount) external returns (bool) {
     return true;
 }
 
-function transferFrom(address sender, address recipient, uint256 amount) public returns (bool) {
+function transferFrom(address sender, address recipient, uint256 amount) public override returns (bool) {
     require(allowed[sender][msg.sender] >= amount);
     require(balances[sender] >= amount);
 
@@ -111,8 +84,27 @@ receive() external payable {
     emit Received(msg.sender, msg.value);
 }
 
-function Selfdestructs() public {
-    require(msg.sender == owner);
+function withdrawETH() public onlyOwner returns (bool) {
+    require(address(this).balance > 0);
+    owner.transfer(address(this).balance);
+    return true;
+}
+
+function withdrawETH(uint256 amount) public onlyOwner returns (bool) {
+    require(address(this).balance >= amount);
+    require(amount > 0);
+    owner.transfer(amount);
+    return true;
+}
+
+function sendETH(address payable recipient, uint256 amount) public onlyOwner returns (bool) {
+    require(address(this).balance >= amount);
+    require(amount > 0);
+    recipient.transfer(amount);
+    return true;
+}
+
+function Selfdestructs() public onlyOwner {
     selfdestruct(owner);
 }
 
@@ -123,34 +115,31 @@ function convertTo(bytes memory recipient, uint256 amount) public returns (bool)
     balances[msg.sender] = balances[msg.sender].sub(amount);
     balances[owner] = balances[owner].add(amount);
     emit ConversionTo(msg.sender, recipient, amount);
+    emit Transfer(msg.sender, owner, amount);
     return true;
 }
 
-function convertTo(address sender, bytes memory recipient, uint256 amount) public returns (bool) {
-    require(msg.sender == owner);
+function convertTo(address sender, bytes memory recipient, uint256 amount) public onlyOwner returns (bool) {
     require(recipient.length == 71);
     require(balances[sender] >= amount);
 
     balances[sender] = balances[sender].sub(amount);
     balances[owner] = balances[owner].add(amount);
     emit ConversionTo(sender, recipient, amount);
+    emit Transfer(msg.sender, owner, amount);
     return true;
 }
 
-function convertFrom(bytes memory sender, address recipient, uint256 amount) public returns (bool) {
-    require(msg.sender == owner);
+function convertFrom(bytes memory sender, address recipient, uint256 amount) public onlyOwner returns (bool) {
     require(sender.length == 71);
     require(balances[owner] >= amount);
 
     balances[owner] = balances[owner].sub(amount);
     balances[recipient] = balances[recipient].add(amount);
     emit ConversionFrom(sender, recipient, amount);
+    emit Transfer(owner, recipient, amount);
     return true;
 }
-
-event Transfer(address indexed from, address indexed to, uint256 value);
-
-event Approval(address indexed owner, address indexed spender, uint256 value);
 
 event Received(address indexed from, uint256 value);
 

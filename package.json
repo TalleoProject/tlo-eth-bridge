@@ -16,7 +16,8 @@
     "dateformat": "*",
     "redis": "*",
     "solc": ">=0.5.0",
-    "web3": "*"
+    "web3": "*",
+    "@openzeppelin/contracts": "*"
   },
   "engines": {
     "node": ">=0.10"

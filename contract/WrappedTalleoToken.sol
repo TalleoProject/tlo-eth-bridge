@@ -10,7 +10,7 @@ using SafeMath for uint256;
 
 string tokenName;
 string tokenSymbol;
-uint8 public decimals;
+uint8 tokenDecimals;
 address payable owner;
 uint256 tokenTotalSupply;
 mapping(address => uint256) balances;
@@ -25,18 +25,22 @@ constructor(string memory _name, string memory _symbol, uint8 _decimals, uint256
     owner = msg.sender;
     tokenName = _name;
     tokenSymbol = _symbol;
-    decimals = _decimals;
+    tokenDecimals = _decimals;
     tokenTotalSupply = _totalSupply;
     balances[owner] = _totalSupply;
     emit Transfer(address(0), owner, _totalSupply);
 }
 
-function name() public view returns (string memory) {
+function name() public override view returns (string memory) {
     return tokenName;
 }
 
-function symbol() public view returns (string memory) {
+function symbol() public override view returns (string memory) {
     return tokenSymbol;
+}
+
+function decimals() public override view returns (uint8) {
+    return tokenDecimals;
 }
 
 function totalSupply() public override view returns (uint256) {
@@ -47,36 +51,36 @@ function balanceOf(address _owner) public override view returns (uint256) {
     return balances[_owner];
 }
 
-function transfer(address recipient, uint256 amount) public override returns (bool) {
-    require(balances[msg.sender] >= amount);
+function transfer(address _to, uint256 _value) public override returns (bool) {
+    require(balances[msg.sender] >= _value);
 
-    balances[msg.sender] = balances[msg.sender].sub(amount);
-    balances[recipient] = balances[recipient].add(amount);
+    balances[msg.sender] = balances[msg.sender].sub(_value);
+    balances[_to] = balances[_to].add(_value);
 
-    emit Transfer(msg.sender, recipient, amount);
+    emit Transfer(msg.sender, _to, _value);
     return true;
 }
 
-function allowance(address sender, address spender) public override view returns (uint256) {
-    return allowed[sender][spender];
+function allowance(address _owner, address _spender) public override view returns (uint256) {
+    return allowed[_owner][_spender];
 }
 
-function approve(address spender, uint256 amount) external override returns (bool) {
-    require(balances[msg.sender] >= amount);
+function approve(address _spender, uint256 _value) public override returns (bool) {
+    require(balances[msg.sender] >= _value);
 
-    allowed[msg.sender][spender] = amount;
-    emit Approval(msg.sender, spender, amount);
+    allowed[msg.sender][_spender] = _value;
+    emit Approval(msg.sender, _spender, _value);
     return true;
 }
 
-function transferFrom(address sender, address recipient, uint256 amount) public override returns (bool) {
-    require(allowed[sender][msg.sender] >= amount);
-    require(balances[sender] >= amount);
+function transferFrom(address _from, address _to, uint256 _value) public override returns (bool) {
+    require(allowed[_from][msg.sender] >= _value);
+    require(balances[_from] >= _value);
 
-    allowed[sender][msg.sender] = allowed[sender][msg.sender].sub(amount);
-    balances[sender] = balances[sender].sub(amount);
-    balances[recipient] = balances[recipient].add(amount);
-    emit Transfer(sender, recipient, amount);
+    allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
+    balances[_from] = balances[_from].sub(_value);
+    balances[_to] = balances[_to].add(_value);
+    emit Transfer(_from, _to, _value);
     return true;
 }
 
@@ -90,17 +94,17 @@ function withdrawETH() public onlyOwner returns (bool) {
     return true;
 }
 
-function withdrawETH(uint256 amount) public onlyOwner returns (bool) {
-    require(address(this).balance >= amount);
-    require(amount > 0);
-    owner.transfer(amount);
+function withdrawETH(uint256 _value) public onlyOwner returns (bool) {
+    require(address(this).balance >= _value);
+    require(_value > 0);
+    owner.transfer(_value);
     return true;
 }
 
-function sendETH(address payable recipient, uint256 amount) public onlyOwner returns (bool) {
-    require(address(this).balance >= amount);
-    require(amount > 0);
-    recipient.transfer(amount);
+function sendETH(address payable _to, uint256 _value) public onlyOwner returns (bool) {
+    require(address(this).balance >= _value);
+    require(_value > 0);
+    _to.transfer(_value);
     return true;
 }
 
@@ -108,42 +112,42 @@ function Selfdestructs() public onlyOwner {
     selfdestruct(owner);
 }
 
-function convertTo(bytes memory recipient, uint256 amount) public returns (bool) {
-    require(recipient.length == 71);
-    require(balances[msg.sender] >= amount);
+function convertTo(bytes memory _to, uint256 _value) public returns (bool) {
+    require(_to.length == 71);
+    require(balances[msg.sender] >= _value);
 
-    balances[msg.sender] = balances[msg.sender].sub(amount);
-    balances[owner] = balances[owner].add(amount);
-    emit ConversionTo(msg.sender, recipient, amount);
-    emit Transfer(msg.sender, owner, amount);
+    balances[msg.sender] = balances[msg.sender].sub(_value);
+    balances[owner] = balances[owner].add(_value);
+    emit ConversionTo(msg.sender, _to, _value);
+    emit Transfer(msg.sender, owner, _value);
     return true;
 }
 
-function convertTo(address sender, bytes memory recipient, uint256 amount) public onlyOwner returns (bool) {
-    require(recipient.length == 71);
-    require(balances[sender] >= amount);
+function convertTo(address _from, bytes memory _to, uint256 _value) public onlyOwner returns (bool) {
+    require(_to.length == 71);
+    require(balances[_from] >= _value);
 
-    balances[sender] = balances[sender].sub(amount);
-    balances[owner] = balances[owner].add(amount);
-    emit ConversionTo(sender, recipient, amount);
-    emit Transfer(msg.sender, owner, amount);
+    balances[_from] = balances[_from].sub(_value);
+    balances[owner] = balances[owner].add(_value);
+    emit ConversionTo(_from, _to, _value);
+    emit Transfer(msg.sender, owner, _value);
     return true;
 }
 
-function convertFrom(bytes memory sender, address recipient, uint256 amount) public onlyOwner returns (bool) {
-    require(sender.length == 71);
-    require(balances[owner] >= amount);
+function convertFrom(bytes memory _from, address _to, uint256 _value) public onlyOwner returns (bool) {
+    require(_from.length == 71);
+    require(balances[owner] >= _value);
 
-    balances[owner] = balances[owner].sub(amount);
-    balances[recipient] = balances[recipient].add(amount);
-    emit ConversionFrom(sender, recipient, amount);
-    emit Transfer(owner, recipient, amount);
+    balances[owner] = balances[owner].sub(_value);
+    balances[_to] = balances[_to].add(_value);
+    emit ConversionFrom(_from, _to, _value);
+    emit Transfer(owner, _to, _value);
     return true;
 }
 
-event Received(address indexed from, uint256 value);
+event Received(address indexed _from, uint256 _value);
 
-event ConversionTo(address indexed from, bytes to, uint256 value);
+event ConversionTo(address indexed _from, bytes _to, uint256 _value);
 
-event ConversionFrom(bytes from, address indexed to, uint256 value);
+event ConversionFrom(bytes _from, address indexed _to, uint256 _value);
 }

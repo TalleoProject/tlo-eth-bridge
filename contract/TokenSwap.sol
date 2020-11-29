@@ -18,32 +18,32 @@ modifier onlyOwner() {
     _;
 }
 
-constructor(IERC20 first, IERC20 second, uint256 _conversionMultiplier, uint256 _conversionDivisor) {
+constructor(IERC20 _first, IERC20 _second, uint256 _conversionMultiplier, uint256 _conversionDivisor) {
     owner = msg.sender;
-    firstToken = first;
-    secondToken = second;
+    firstToken = _first;
+    secondToken = _second;
     conversionMultiplier = _conversionMultiplier;
     conversionDivisor = _conversionDivisor;
 }
 
-function swap(uint256 amount) public returns (bool) {
+function swap(uint256 _value) public returns (bool) {
     uint256 swapBalance = secondToken.balanceOf(address(this));
-    uint256 secondAmount = amount.mul(conversionMultiplier).div(conversionDivisor);
-    require(secondAmount > 0, "Nothing to swap");
-    require(secondAmount <= swapBalance, "Not enough tokens in the reserve");
+    uint256 secondValue = _value.mul(conversionMultiplier).div(conversionDivisor);
+    require(secondValue > 0, "Nothing to swap");
+    require(secondValue <= swapBalance, "Not enough tokens in the reserve");
     uint256 allowance = firstToken.allowance(msg.sender, address(this));
-    require(allowance >= amount, "Allowance is too low");
-    firstToken.transferFrom(msg.sender, address(this), amount);
-    secondToken.transfer(msg.sender, secondAmount);
-    emit Swapped(msg.sender, amount, secondAmount);
+    require(allowance >= _value, "Allowance is too low");
+    firstToken.transferFrom(msg.sender, address(this), _value);
+    secondToken.transfer(msg.sender, secondValue);
+    emit Swapped(msg.sender, _value, secondValue);
     return true;
 }
 
-function conversionRate(uint256 multiplier, uint256 divisor) public onlyOwner returns (bool) {
-    conversionMultiplier = multiplier;
-    conversionDivisor = divisor;
+function conversionRate(uint256 _multiplier, uint256 _divisor) public onlyOwner returns (bool) {
+    conversionMultiplier = _multiplier;
+    conversionDivisor = _divisor;
     return true;
 }
 
-event Swapped(address indexed user, uint256 firstAmount, uint256 secondAmount);
+event Swapped(address indexed _user, uint256 _firstValue, uint256 _secondValue);
 }

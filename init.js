@@ -1,11 +1,18 @@
 var fs = require('fs');
 var cluster = require('cluster');
 var redis = require('redis');
+var logSystem = 'master';
 
 require('./lib/configReader.js');
 require('./lib/logger.js');
 
 global.redisClient = redis.createClient(config.redis.port, config.redis.host);
+global.redisClient.on('error', (error) => {
+    log('error', logSystem, 'Redis error: %s', [error.message]);
+});
+global.redisClient.on('connect', () => {
+    log('info', logSystem, 'Connected to redis', []);
+});
 
 if (cluster.isWorker){
     switch(process.env.workerType){
@@ -20,7 +27,6 @@ if (cluster.isWorker){
 }
 
 
-var logSystem = 'master';
 require('./lib/exceptionWriter.js')(logSystem);
 
 

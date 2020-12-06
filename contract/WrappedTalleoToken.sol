@@ -47,17 +47,25 @@ function totalSupply() public override view returns (uint256) {
     return tokenTotalSupply;
 }
 
+function circulatingSupply() public view returns (uint256) {
+    return tokenTotalSupply.sub(balances[owner]).sub(balances[address(this)]).sub(balances[address(0)]);
+}
+
 function balanceOf(address _owner) public override view returns (uint256) {
     return balances[_owner];
 }
 
-function transfer(address _to, uint256 _value) public override returns (bool) {
-    require(balances[msg.sender] >= _value);
+function _transfer(address _from, address _to, uint256 _value) internal {
+    require(balances[_from] >= _value);
 
-    balances[msg.sender] = balances[msg.sender].sub(_value);
+    balances[_from] = balances[_from].sub(_value);
     balances[_to] = balances[_to].add(_value);
 
-    emit Transfer(msg.sender, _to, _value);
+    emit Transfer(_from, _to, _value);
+}
+
+function transfer(address _to, uint256 _value) public override returns (bool) {
+    _transfer(msg.sender, _to, _value);
     return true;
 }
 
@@ -65,27 +73,51 @@ function allowance(address _owner, address _spender) public override view return
     return allowed[_owner][_spender];
 }
 
-function approve(address _spender, uint256 _value) public override returns (bool) {
-    require(balances[msg.sender] >= _value);
+function increaseAllowance(address _spender, uint256 _addedValue) public returns (bool) {
+    uint256 _value = allowed[msg.sender][_spender].add(_addedValue);
+    _approve(msg.sender, _spender, _value);
+    return true;
+}
 
-    allowed[msg.sender][_spender] = _value;
-    emit Approval(msg.sender, _spender, _value);
+function decreaseAllowance(address _spender, uint256 _subtractedValue) public returns (bool) {
+    uint256 _value = allowed[msg.sender][_spender].sub(_subtractedValue, "ERC20: Can't decrease allowance below zero");
+    _approve(msg.sender, _spender, _value);
+    return true;
+}
+
+function _approve(address _owner, address _spender, uint256 _value) internal {
+    require(_owner != address(0));
+    require(_spender != address(0));
+    require(balances[_owner] >= _value);
+
+    allowed[_owner][_spender] = _value;
+    emit Approval(_owner, _spender, _value);
+}
+
+function approve(address _spender, uint256 _value) public override returns (bool) {
+    _approve(msg.sender, _spender, _value);
     return true;
 }
 
 function transferFrom(address _from, address _to, uint256 _value) public override returns (bool) {
     require(allowed[_from][msg.sender] >= _value);
-    require(balances[_from] >= _value);
-
+    _transfer(_from, _to, _value);
     allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
-    balances[_from] = balances[_from].sub(_value);
-    balances[_to] = balances[_to].add(_value);
-    emit Transfer(_from, _to, _value);
     return true;
 }
 
 receive() external payable {
     emit Received(msg.sender, msg.value);
+}
+
+function withdrawERC20(uint256 _value) public onlyOwner returns (bool) {
+    address myAddress = address(this);
+    _transfer(myAddress, msg.sender, _value);
+    return true;
+}
+
+function withdrawERC20(IERC20 _token, uint256 _value) public onlyOwner returns (bool) {
+    return _token.transfer(msg.sender, _value);
 }
 
 function withdrawETH() public onlyOwner returns (bool) {
@@ -108,40 +140,32 @@ function sendETH(address payable _to, uint256 _value) public onlyOwner returns (
     return true;
 }
 
+function sendERC20(IERC20 _token, address _to, uint256 _value) public onlyOwner returns (bool) {
+    return _token.transfer(_to, _value);
+}
+
 function Selfdestructs() public onlyOwner {
     selfdestruct(owner);
 }
 
 function convertTo(bytes memory _to, uint256 _value) public returns (bool) {
     require(_to.length == 71);
-    require(balances[msg.sender] >= _value);
-
-    balances[msg.sender] = balances[msg.sender].sub(_value);
-    balances[owner] = balances[owner].add(_value);
+    _transfer(msg.sender, owner, _value);
     emit ConversionTo(msg.sender, _to, _value);
-    emit Transfer(msg.sender, owner, _value);
     return true;
 }
 
 function convertTo(address _from, bytes memory _to, uint256 _value) public onlyOwner returns (bool) {
     require(_to.length == 71);
-    require(balances[_from] >= _value);
-
-    balances[_from] = balances[_from].sub(_value);
-    balances[owner] = balances[owner].add(_value);
+    _transfer(_from, owner, _value);
     emit ConversionTo(_from, _to, _value);
-    emit Transfer(msg.sender, owner, _value);
     return true;
 }
 
 function convertFrom(bytes memory _from, address _to, uint256 _value) public onlyOwner returns (bool) {
     require(_from.length == 71);
-    require(balances[owner] >= _value);
-
-    balances[owner] = balances[owner].sub(_value);
-    balances[_to] = balances[_to].add(_value);
+    _transfer(owner, _to, _value);
     emit ConversionFrom(_from, _to, _value);
-    emit Transfer(owner, _to, _value);
     return true;
 }
 

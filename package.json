@@ -15,7 +15,7 @@
     "cli-color": "*",
     "dateformat": "*",
     "redis": "*",
-    "solc": ">=0.5.0",
+    "solc": ">=0.7.0 <0.8.0",
     "web3": "*",
     "@openzeppelin/contracts": "*"
   },

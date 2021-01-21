@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: LGPL-2.0-or-later
-pragma solidity >= 0.5.0 <0.7.6;
+pragma solidity >= 0.7.0 <0.8.0;
 
 import "SafeMath.sol";
 import "IERC20.sol";

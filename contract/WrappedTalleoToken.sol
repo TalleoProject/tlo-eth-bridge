@@ -31,6 +31,10 @@ constructor(string memory _name, string memory _symbol, uint8 _decimals, uint256
     emit Transfer(address(0), owner, _totalSupply);
 }
 
+function getOwner() public view returns (address) {
+    return owner;
+}
+
 function name() public override view returns (string memory) {
     return tokenName;
 }

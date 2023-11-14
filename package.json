@@ -12,10 +12,9 @@
     "registry": "https://npm.pkg.github.com"
   },
   "dependencies": {
+    "@mtl1979/base58-native": "git+https://github.com/mtl1979/node-base58.git",
     "@openzeppelin/contracts": "^3.4.1",
     "async": "^3.2.4",
-    "base58-native": "*",
-    "bignum": "*",
     "cli-color": "^2.0.3",
     "dateformat": "*",
     "redis": "^4.3.0",

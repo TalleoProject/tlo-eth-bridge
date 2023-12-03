@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: LGPL-2.0-or-later
-pragma solidity >= 0.7.0 <0.8.20;
+pragma solidity >= 0.8.0 <0.8.20;
 import "IERC20.sol";
-import "SafeMath.sol";
 
 contract TokenSwap {
-
-using SafeMath for uint256;
 
 address payable owner;
 IERC20 firstToken;
@@ -19,7 +16,7 @@ modifier onlyOwner() {
 }
 
 constructor(IERC20 _first, IERC20 _second, uint256 _conversionMultiplier, uint256 _conversionDivisor) {
-    owner = msg.sender;
+    owner = payable(msg.sender);
     firstToken = _first;
     secondToken = _second;
     conversionMultiplier = _conversionMultiplier;
@@ -28,7 +25,7 @@ constructor(IERC20 _first, IERC20 _second, uint256 _conversionMultiplier, uint25
 
 function swap(uint256 _value) public returns (bool) {
     uint256 swapBalance = secondToken.balanceOf(address(this));
-    uint256 secondValue = _value.mul(conversionMultiplier).div(conversionDivisor);
+    uint256 secondValue = _value * conversionMultiplier / conversionDivisor;
     require(secondValue > 0, "Nothing to swap");
     require(secondValue <= swapBalance, "Not enough tokens in the reserve");
     uint256 allowance = firstToken.allowance(msg.sender, address(this));

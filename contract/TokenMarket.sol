@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: LGPL-2.0-or-later
-pragma solidity >= 0.7.0 <0.8.20;
+pragma solidity >= 0.8.0 <0.8.20;
 import "IERC20.sol";
-import "SafeMath.sol";
 
 contract TokenMarket {
-
-using SafeMath for uint256;
 
 address payable owner;
 IERC20 token;
@@ -18,7 +15,7 @@ modifier onlyOwner() {
 }
 
 constructor(IERC20 _token, uint256 _feeMultiplier, uint256 _feeDivisor) {
-    owner = msg.sender;
+    owner = payable(msg.sender);
     token = _token;
     feeMultiplier = _feeMultiplier;
     feeDivisor = _feeDivisor;
@@ -26,10 +23,10 @@ constructor(IERC20 _token, uint256 _feeMultiplier, uint256 _feeDivisor) {
 
 function buyToken() public payable returns (bool) {
     require(msg.value > 0, "No coins received");
-    uint256 firstBalance = address(this).balance.add(msg.value);
+    uint256 firstBalance = address(this).balance + msg.value;
     uint256 secondBalance = token.balanceOf(address(this));
-    uint256 toValue = msg.value.mul(secondBalance).div(firstBalance);
-    toValue = toValue.sub(toValue.mul(feeMultiplier).div(feeDivisor));
+    uint256 toValue = msg.value * secondBalance / firstBalance;
+    toValue -= toValue * feeMultiplier / feeDivisor;
     require(toValue > 0, "Not enough coins sent");
     require(toValue <= secondBalance, "Not enough tokens in the reserve");
     token.transfer(msg.sender, toValue);
@@ -39,16 +36,16 @@ function buyToken() public payable returns (bool) {
 
 function sellToken(uint256 _value) public returns (bool) {
     require(_value > 0, "No tokens received");
-    uint256 firstBalance = token.balanceOf(address(this)).add(_value);
+    uint256 firstBalance = token.balanceOf(address(this)) + _value;
     uint256 secondBalance = address(this).balance;
-    uint256 toValue = _value.mul(secondBalance).div(firstBalance);
-    toValue = toValue.sub(toValue.mul(feeMultiplier).div(feeDivisor));
+    uint256 toValue = _value * secondBalance / firstBalance;
+    toValue -= toValue * feeMultiplier / feeDivisor;
     require(toValue > 0, "Not enough tokens sent");
     require(toValue <= secondBalance, "Not enough coins in the reserve");
     uint256 allowance = token.allowance(msg.sender, address(this));
     require(allowance >= _value, "Allowance is too low");
     token.transferFrom(msg.sender, address(this), _value);
-    msg.sender.transfer(toValue);
+    payable(msg.sender).transfer(toValue);
     emit TokensSold(msg.sender, _value, toValue);
     return true;
 }

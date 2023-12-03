@@ -1,12 +1,9 @@
 // SPDX-License-Identifier: LGPL-2.0-or-later
-pragma solidity >= 0.7.0 <0.8.0;
+pragma solidity >= 0.8.0 <0.9.0;
 
-import "SafeMath.sol";
 import "IERC20.sol";
 
 contract WrappedTalleoToken is IERC20 {
-
-using SafeMath for uint256;
 
 string tokenName;
 string tokenSymbol;
@@ -22,7 +19,7 @@ modifier onlyOwner() {
 }
 
 constructor(string memory _name, string memory _symbol, uint8 _decimals, uint256 _totalSupply) {
-    owner = msg.sender;
+    owner = payable(msg.sender);
     tokenName = _name;
     tokenSymbol = _symbol;
     tokenDecimals = _decimals;
@@ -48,7 +45,7 @@ function totalSupply() public override view returns (uint256) {
 }
 
 function circulatingSupply() public view returns (uint256) {
-    return tokenTotalSupply.sub(balances[owner]).sub(balances[address(this)]).sub(balances[address(0)]);
+    return tokenTotalSupply - balances[owner] - balances[address(this)] - balances[address(0)];
 }
 
 function balanceOf(address _owner) public override view returns (uint256) {
@@ -58,8 +55,8 @@ function balanceOf(address _owner) public override view returns (uint256) {
 function _transfer(address _from, address _to, uint256 _value) internal {
     require(balances[_from] >= _value);
 
-    balances[_from] = balances[_from].sub(_value);
-    balances[_to] = balances[_to].add(_value);
+    balances[_from] -= _value;
+    balances[_to] += _value;
 
     emit Transfer(_from, _to, _value);
 }
@@ -74,13 +71,13 @@ function allowance(address _owner, address _spender) public override view return
 }
 
 function increaseAllowance(address _spender, uint256 _addedValue) public returns (bool) {
-    uint256 _value = allowed[msg.sender][_spender].add(_addedValue);
+    uint256 _value = allowed[msg.sender][_spender] + _addedValue;
     _approve(msg.sender, _spender, _value);
     return true;
 }
 
 function decreaseAllowance(address _spender, uint256 _subtractedValue) public returns (bool) {
-    uint256 _value = allowed[msg.sender][_spender].sub(_subtractedValue, "ERC20: Can't decrease allowance below zero");
+    uint256 _value = allowed[msg.sender][_spender] - _subtractedValue;
     _approve(msg.sender, _spender, _value);
     return true;
 }
@@ -102,7 +99,7 @@ function approve(address _spender, uint256 _value) public override returns (bool
 function transferFrom(address _from, address _to, uint256 _value) public override returns (bool) {
     require(allowed[_from][msg.sender] >= _value);
     _transfer(_from, _to, _value);
-    allowed[_from][msg.sender] = allowed[_from][msg.sender].sub(_value);
+    allowed[_from][msg.sender] -= _value;
     return true;
 }
 
@@ -142,10 +139,6 @@ function sendETH(address payable _to, uint256 _value) public onlyOwner returns (
 
 function sendERC20(IERC20 _token, address _to, uint256 _value) public onlyOwner returns (bool) {
     return _token.transfer(_to, _value);
-}
-
-function Selfdestructs() public onlyOwner {
-    selfdestruct(owner);
 }
 
 function convertTo(bytes memory _to, uint256 _value) public returns (bool) {
